@@ -1,0 +1,14 @@
+#environment variables and secrets
+.env
+.env.*
+
+#models
+ollama/models/
+
+# Python-generated files
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/

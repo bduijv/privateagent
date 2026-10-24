@@ -1,0 +1,40 @@
+services:
+  ollama:
+    build:
+      context: ./ollama/container
+    image: local-ollama
+    container_name: ollama
+    environment:
+      OLLAMA_HOST: 0.0.0.0:11434
+      OLLAMA_MODELS: /models
+      OLLAMA_NUM_THREADS: "6"
+    volumes:
+      - ./ollama/models:/models:Z
+    networks:
+      - ai-net
+
+  agent:
+    build:
+      context: ./agent/container
+    image: local-ai-agent
+    container_name: ai-agent
+    user: "1001:1001"
+    userns_mode: "keep-id:uid=1001,gid=1001"
+    command: ["sleep", "infinity"]
+    environment:
+      OLLAMA_BASE_URL: http://ollama:11434
+    volumes:
+      - ${HOME}/dev/ai-projects:/workspace:Z
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - ai-net
+    depends_on:
+      - ollama
+
+networks:
+  ai-net:
+    external: true
+    name: ai-net

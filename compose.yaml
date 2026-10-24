@@ -25,6 +25,7 @@ services:
       OLLAMA_BASE_URL: http://ollama:11434
     volumes:
       - ${HOME}/dev/ai-projects:/workspace:Z
+      - ./agent:/app:ro,Z
     cap_drop:
       - ALL
     security_opt:

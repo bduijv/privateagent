@@ -1,35 +1,64 @@
 import os
-import sys
+from  typing import TypedDict
 
-from ollama import Client
+from langchain_ollama import ChatOllama
+from langgraph.graph import END, START, StateGraph
 
-OLLAMA_HOST = os.getenv("OLLAMA_BASE_URL", "http://ollama:11434")
-MODEL = "qwen2.5-coder:7b"
+MODEL= "qwen2.5-coder:7b"
+OLLAMA_HOST = os.getenv(
+    "OLLAMA_BASE_URL",
+    "http://ollama:11434",
+)
 
+# Define the state passed through the graph:
+class AgentState(TypedDict):
+    prompt: str
+    response: str
 
-def main() -> None:
-    client = Client(host=OLLAMA_HOST)
+# Configure the language model:
+llm = ChatOllama(
+    model=MODEL,
+    base_url=OLLAMA_HOST,
+    temperature=0,
+)
 
-    prompt = (
-        "You are a local coding assistant. "
-        "Reply briefly to confirm that you are running and ready to help "
-        "with Python projects."
+# Define a graph node:
+def call_model(state:AgentState) -> dict:
+    result = llm.invoke(state["prompt"])
+
+    return {
+        "response": str(result.content),
+    }
+
+# build the graph:
+def build_graph():
+    graph = StateGraph(AgentState)
+
+    graph.add_node("call_model", call_model)
+
+    graph.add_edge(START,"call_model")
+    graph.add_edge("call_model", END)
+
+    return graph.compile()
+
+# Run the graph:
+def main():
+    app = build_graph()
+
+    result = app.invoke(
+        {
+            "prompt": (
+                "You are a local coding assistant. "
+                "Briefly introduce yourself and explain "
+                "that you can help with python projects."
+            )
+        }
     )
 
-    print(f"Connecting to Ollama at {OLLAMA_HOST}...")
-    print(f"Using model: {MODEL}\n")
-
-    try:
-        response = client.chat(
-            model=MODEL,
-            messages=[{"role": "user", "content": prompt}],
-        )
-    except Exception as exc:
-        print(f"Could not get a response from Ollama: {exc}", file=sys.stderr)
-        sys.exit(1)
-
-    print(response.message.content)
-
+    print(f"Model: {MODEL}")
+    print(f"Ollama: {OLLAMA_HOST}")
+    print()
+    print(result["response"])
 
 if __name__ == "__main__":
     main()

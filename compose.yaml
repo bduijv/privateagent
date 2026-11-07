@@ -23,8 +23,9 @@ services:
     command: ["sleep", "infinity"]
     environment:
       OLLAMA_BASE_URL: http://ollama:11434
+      EXECUTOR_BASE_URL: http://executor:8000
     volumes:
-      - ${HOME}/dev/ai-projects:/workspace:Z
+      - ${HOME}/dev/ai-projects:/workspace:z
       - ./agent:/app:ro,Z
     cap_drop:
       - ALL
@@ -32,10 +33,45 @@ services:
       - no-new-privileges:true
     networks:
       - ai-net
+      - exec-control
     depends_on:
       - ollama
+      - executor
+    env_file:
+      - .env
+
+  executor:
+    build:
+      context: ./executor/container
+    image: local-ai-executor
+    container_name: executor
+    user: "1001:1001"
+    userns_mode: "keep-id:uid=1001,gid=1001"
+    volumes:
+      - ${HOME}/dev/ai-projects:/workspace:z
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - exec-control
+      - exec-net
+    env_file:
+      - .env
 
 networks:
   ai-net:
     external: true
     name: ai-net
+
+  exec-control:
+    name: exec-control
+    driver: bridge
+    internal: true
+
+  exec-net:
+    name: exec-net
+    driver: bridge

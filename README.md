@@ -1,31 +1,18 @@
-                    Host
-                      │
-                Podman containers
-                      │
-          ┌───────────┴───────────┐
-          │                       │
-          ▼                       ▼
-    ┌───────────┐           ┌───────────┐
-    │   Agent   │           │ Executor  │
-    │           │           │           │
-    │ Planning  │──────────▶│ Python    │
-    │ Reasoning │  requests │ Tests     │
-    │ Tool logic│           │ Commands  │
-    └─────┬─────┘           └─────┬─────┘
-          │                       │
-          ▼                                      ▼
-       Ollama              Restricted workspace
-       
-The agent decides what to do. The executor performs operations within explicitly granted permissions.
+                    AGENT
+                      |
+             ┌────────┴────────┐
+             |                 |
+           ai-net         exec-control
+             |                 |
+           Ollama           Executor
+                               |
+                            exec-net
+                               |
+                            Internet
 
-We would aim for:
-- An unprivileged agent user.
-- An unprivileged executor user.
-- No unnecessary Linux capabilities.
-- no-new-privileges.
-- No access to your SSH keys or other sensitive host directories.
-- An internal network for agent-to-Ollama communication.
-- A narrowly scoped workspace mount.
-- Resource and execution-time limits for the executor.
-- Git commits or another recovery mechanism for project changes.
-One crucial qualification: separate containers do not automatically mean the executor is secure. If the agent can instruct it to execute arbitrary shell commands, the executor's filesystem mounts, credentials, network access, and Linux privileges determine what those commands can do.
+Agent: no internet access, no shell access, LangGraph orchestration only.
+Ollama: internal network only, local model inference.
+Executor: shell access, project workspace, outbound internet.
+Executor API: internal communication with the agent.
+Networking: three separate networks.
+Security: rootless containers, non-root users, dropped capabilities, resource limits and no host mounts beyond the project workspace.
